@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Superheroes Match - Full Screen</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #e63946;
+            --dark: #0b132b;
+            --light: #f1faee;
+            --accent: #3a506b;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: var(--dark);
+            color: var(--light);
+            margin: 0;
+            padding: 5px;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Impedisce lo scroll */
+        }
+
+        header {
+            text-align: center;
+            height: 40px;
+        }
+
+        h1 { font-size: 1.1rem; margin: 0; color: var(--primary); text-transform: uppercase; }
+        p.info { font-size: 0.7rem; margin: 0; opacity: 0.8; }
+
+        .main-game {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 5px;
+            gap: 10px;
+        }
+
+        /* Griglie per le carte */
+        .card-row {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr); /* Tutte e 9 sulla stessa riga */
+            gap: 5px;
+            align-items: center;
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            color: var(--accent);
+            border-bottom: 1px solid var(--accent);
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        /* CARTE ID (A) */
+        .card-id {
+            aspect-ratio: 2/3;
+            background: #000;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            cursor: zoom-in;
+            transition: transform 0.1s;
+            position: relative;
+        }
+        .card-id img { width: 100%; height: 100%; object-fit: contain; }
+        .card-id:hover { border-color: var(--primary); transform: scale(1.05); z-index: 5; }
+
+        /* SLOT AVATAR (B) */
+        .avatar-slot {
+            aspect-ratio: 2/3;
+            border: 1px dashed var(--accent);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: all 0.2s;
+        }
+        .avatar-slot img { width: 85%; max-height: 80%; object-fit: contain; }
+        .avatar-slot span { font-size: 0.5rem; margin-top: 2px; }
+        
+        .avatar-slot.drag-over { background: rgba(230, 57, 70, 0.2); border-color: var(--primary); }
+        .avatar-slot.matched { border: 1px solid #4caf50; background: rgba(76, 175, 80, 0.1); }
+        .avatar-slot.matched img { opacity: 0.2; }
+        .avatar-slot.matched::after { content: "✅"; position: absolute; font-size: 1.5rem; }
+
+        /* MODAL ZOOM */
+        #zoom-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 2000;
+            justify-content: center; align-items: center;
+        }
+        #zoom-modal img { max-width: 90%; max-height: 90%; border: 2px solid white; box-shadow: 0 0 20px var(--primary); }
+
+        /* MODAL VITTORIA */
+        #win-modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; color: var(--dark);
+            padding: 20px; border-radius: 15px;
+            text-align: center; z-index: 3000;
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+        }
+        #code-num { display: none; font-size: 60px; color: var(--primary); font-weight: bold; }
+        
+        button {
+            background: var(--primary); color: white; border: none;
+            padding: 10px 20px; cursor: pointer; border-radius: 5px; font-weight: bold;
+        }
+
+        .hidden { visibility: hidden; opacity: 0; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Superheroes Identification</h1>
+    <p class="info">Trascina le ID Card (Sopra) sugli Avatar (Sotto). Click per ingrandire.</p>
+</header>
+
+<div class="main-game">
+    <div>
+        <div class="section-label">Carte d'Identità da assegnare</div>
+        <div class="card-row" id="id-container">
+            </div>
+    </div>
+
+    <div>
+        <div class="section-label">Database Avatar</div>
+        <div class="card-row" id="avatar-container">
+            </div>
+    </div>
+</div>
+
+<div id="zoom-modal" onclick="this.style.display='none'"><img id="zoom-img"></div>
+
+<div id="win-modal">
+    <h2>Missione Compiuta! 🎖️</h2>
+    <p>Hai associato correttamente tutti gli eroi.</p>
+    <button id="reveal-btn" onclick="showCode()">RIVELA CODICE</button>
+    <div id="code-num">1</div>
+</div>
+
+<script>
+    const totalCards = 9;
+    let matches = 0;
+
+    // Generazione dinamica per mischiare le carte A
+    const idContainer = document.getElementById('id-container');
+    const avatarContainer = document.getElementById('avatar-container');
+
+    const ids = Array.from({length: totalCards}, (_, i) => i + 1);
+    const shuffledIds = [...ids].sort(() => Math.random() - 0.5);
+
+    // Crea Carte A
+    shuffledIds.forEach(num => {
+        const div = document.createElement('div');
+        div.className = 'card-id';
+        div.draggable = true;
+        div.id = `card-${num}`;
+        div.dataset.match = num;
+        div.onclick = () => openZoom(`${num}A.png`);
+        div.innerHTML = `<img src="${num}A.png" alt="ID ${num}">`;
+        
+        div.ondragstart = (e) => e.dataTransfer.setData('text', div.id);
+        idContainer.appendChild(div);
+    });
+
+    // Crea Slot B
+    ids.forEach(num => {
+        const div = document.createElement('div');
+        div.className = 'avatar-slot';
+        div.dataset.id = num;
+        div.innerHTML = `<img src="${num}B.png" alt="Avatar ${num}"><span>HERO ${num}</span>`;
+        
+        div.ondragover = (e) => e.preventDefault();
+        div.ondragenter = () => div.classList.add('drag-over');
+        div.ondragleave = () => div.classList.remove('drag-over');
+        
+        div.ondrop = (e) => {
+            div.classList.remove('drag-over');
+            const draggedId = e.dataTransfer.getData('text');
+            const draggedElem = document.getElementById(draggedId);
+            
+            if (draggedElem.dataset.match == div.dataset.id) {
+                div.classList.add('matched');
+                draggedElem.classList.add('hidden');
+                matches++;
+                if (matches === totalCards) celebrate();
+            }
+        };
+        avatarContainer.appendChild(div);
+    });
+
+    function openZoom(src) {
+        document.getElementById('zoom-img').src = src;
+        document.getElementById('zoom-modal').style.display = 'flex';
+    }
+
+    function celebrate() {
+        const end = Date.now() + 5000;
+        (function frame() {
+            confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+            confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+        setTimeout(() => { document.getElementById('win-modal').style.display = 'block'; }, 1000);
+    }
+
+    function showCode() {
+        document.getElementById('reveal-btn').style.display = 'none';
+        document.getElementById('code-num').style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
