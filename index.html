@@ -2,181 +2,104 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Hero Match - Ultra Compact</title>
+    <title>Hero Match - Final Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
-        :root {
-            --primary: #e63946;
-            --dark: #0b132b;
-            --light: #f1faee;
-            --accent: #3a506b;
-        }
+        :root { --primary: #e63946; --dark: #0b132b; --light: #f1faee; --accent: #3a506b; }
+        body { font-family: sans-serif; background-color: var(--dark); color: var(--light); margin: 0; padding: 2px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; align-items: center; }
+        
+        header { display: flex; align-items: center; justify-content: space-between; width: 98vw; padding: 5px 10px; height: 45px; }
+        h1 { font-size: 1.5rem; margin: 0; color: var(--primary); text-transform: uppercase; font-weight: bold; }
+        
+        .inst-row { font-size: 0.95rem; flex-grow: 1; text-align: center; margin: 0 15px; white-space: nowrap; font-weight: 500; }
+        
+        .btn-padlet { background: #e63946; color: white; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2); }
+        .btn-padlet:hover { background: #ff4d4d; transform: scale(1.05); }
+        
+        .game-area { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 98vw; gap: 10px; padding: 5px 0; }
+        .card-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
 
-        body {
-            font-family: sans-serif;
-            background-color: var(--dark);
-            color: var(--light);
-            margin: 0;
-            padding: 2px;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            align-items: center;
-        }
-
-        header { text-align: center; margin-bottom: 5px; }
-        h1 { font-size: 0.9rem; margin: 0; color: var(--primary); text-transform: uppercase; }
-        p { font-size: 0.65rem; margin: 0; opacity: 0.7; }
-
-        .game-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            width: 98vw;
-            gap: 15px;
-        }
-
-        .row-container {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .label {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            color: var(--accent);
-            margin-left: 5px;
-            font-weight: bold;
-        }
-
-        .card-row {
-            display: grid;
-            grid-template-columns: repeat(9, 1fr);
-            gap: 4px;
-        }
-
-        /* CARTE ID (A) */
-        .card-id {
-            aspect-ratio: 2/3;
-            background: #000;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 4px;
-            cursor: zoom-in;
-            transition: 0.2s;
-        }
+        .card-id { aspect-ratio: 2/3; background: #000; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: zoom-in; transition: 0.2s; }
         .card-id img { width: 100%; height: 100%; object-fit: contain; }
         .card-id:hover { border-color: var(--primary); transform: scale(1.05); z-index: 10; }
 
-        /* SLOT AVATAR (B) */
-        .avatar-slot {
-            aspect-ratio: 2/3;
-            border: 1px dashed var(--accent);
-            border-radius: 4px;
-            background: rgba(255,255,255,0.03);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-        }
+        .avatar-slot { aspect-ratio: 2/3; border: 1px dashed var(--accent); border-radius: 4px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; position: relative; }
         .avatar-slot img { width: 85%; height: auto; max-height: 85%; object-fit: contain; }
-        .avatar-slot.drag-over { background: rgba(230, 57, 70, 0.2); }
         .avatar-slot.matched { border: 1px solid #4caf50; background: rgba(76, 175, 80, 0.1); }
         .avatar-slot.matched img { opacity: 0.1; }
-        .avatar-slot.matched::after { content: "✅"; position: absolute; font-size: 1.2rem; }
+        .avatar-slot.matched::after { content: "✅"; position: absolute; font-size: 1.5rem; }
 
-        /* ZOOM & VITTORIA */
-        #zoom-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center;
-        }
+        #zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center; }
         #zoom-modal img { max-width: 90%; max-height: 90%; border: 2px solid white; }
 
-        #win-modal {
-            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; color: var(--dark); padding: 15px; border-radius: 10px;
-            text-align: center; z-index: 3000; width: 250px;
-        }
-        #code-num { display: none; font-size: 60px; color: var(--primary); font-weight: bold; margin: 10px 0; }
+        #win-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: var(--dark); padding: 25px; border-radius: 15px; text-align: center; z-index: 3000; width: 260px; border: 5px solid var(--primary); }
+        #code-num { display: none; font-size: 70px; color: var(--primary); font-weight: bold; margin: 15px 0; }
         
-        button { background: var(--primary); color: white; border: none; padding: 10px; cursor: pointer; border-radius: 5px; font-weight: bold; }
+        button.rev { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 1rem; }
         .hidden { visibility: hidden; opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body>
 
 <header>
-    <h1>HERO MATCHING CENTER</h1>
-    <p>Trascina le ID Card sugli Avatar. Click per ingrandire.</p>
+    <h1>HERO MATCHING</h1>
+    <div class="inst-row">
+        🖱️ Trascina le ID Card sugli Avatar | 🔍 Click per Zoom
+    </div>
+    <a href="https://padlet.com/professoressalauraa/superheroes-academy-5iu1b24rpu9h1bco" target="_blank" class="btn-padlet">
+        💡 SUGGERIMENTI PADLET
+    </a>
 </header>
 
 <div class="game-area">
-    <div class="row-container">
-        <div class="label">Carte d'Identità (A)</div>
-        <div class="card-row" id="id-row"></div>
-    </div>
-
-    <div class="row-container">
-        <div class="label">Database Avatar (B)</div>
-        <div class="card-row" id="avatar-row"></div>
-    </div>
+    <div class="card-row" id="id-row"></div>
+    <div class="card-row" id="avatar-row"></div>
 </div>
 
 <div id="zoom-modal" onclick="this.style.display='none'"><img id="zoom-img"></div>
 
 <div id="win-modal">
-    <h3>Missione Compiuta!</h3>
-    <button id="reveal-btn" onclick="showCode()">RIVELA CODICE</button>
+    <h3>MISSIONE COMPIUTA! 🎖️</h3>
+    <button class="rev" id="reveal-btn" onclick="showCode()">RIVELA CODICE</button>
     <div id="code-num">0</div>
 </div>
 
 <script>
     const total = 9;
     let matches = 0;
-
     const idRow = document.getElementById('id-row');
     const avatarRow = document.getElementById('avatar-row');
-
     const nums = Array.from({length: total}, (_, i) => i + 1);
     const shuffled = [...nums].sort(() => Math.random() - 0.5);
 
-    // Crea ID Cards (A)
+    // Caricamento ID Cards
     shuffled.forEach(n => {
         const d = document.createElement('div');
-        d.className = 'card-id';
-        d.draggable = true;
-        d.id = `c${n}`;
-        d.dataset.m = n;
+        d.className = 'card-id'; d.draggable = true; d.id = `c${n}`; d.dataset.m = n;
         d.onclick = () => { document.getElementById('zoom-img').src = `${n}A.png`; document.getElementById('zoom-modal').style.display = 'flex'; };
         d.innerHTML = `<img src="${n}A.png">`;
         d.ondragstart = (e) => e.dataTransfer.setData('t', d.id);
         idRow.appendChild(d);
     });
 
-    // Crea Slot Avatar (B)
+    // Caricamento Avatar Slot
     nums.forEach(n => {
         const s = document.createElement('div');
-        s.className = 'avatar-slot';
-        s.dataset.i = n;
+        s.className = 'avatar-slot'; s.dataset.i = n;
         s.innerHTML = `<img src="${n}B.png">`;
         s.ondragover = (e) => e.preventDefault();
-        s.ondragenter = () => s.classList.add('drag-over');
-        s.ondragleave = () => s.classList.remove('drag-over');
         s.ondrop = (e) => {
-            s.classList.remove('drag-over');
             const dragId = e.dataTransfer.getData('t');
             const dragElem = document.getElementById(dragId);
-            if (dragElem.dataset.m == s.dataset.i) {
+            if (dragElem && dragElem.dataset.m == s.dataset.i) {
                 s.classList.add('matched');
                 dragElem.classList.add('hidden');
                 matches++;
                 if (matches === total) {
                     const end = Date.now() + 5000;
                     (function f() {
-                        confetti({particleCount:5, angle:60, spread:55, origin:{x:0}});
-                        confetti({particleCount:5, angle:120, spread:55, origin:{x:1}});
+                        confetti({particleCount:7, angle:60, spread:60, origin:{x:0}, colors:['#e63946','#ffffff']});
+                        confetti({particleCount:7, angle:120, spread:60, origin:{x:1}, colors:['#e63946','#ffffff']});
                         if(Date.now() < end) requestAnimationFrame(f);
                     }());
                     setTimeout(() => { document.getElementById('win-modal').style.display = 'block'; }, 1000);
