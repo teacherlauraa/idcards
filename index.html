@@ -2,40 +2,106 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Hero Match - Final Edition</title>
+    <title>Hero Match - 16 Heroes Double Row</title>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root { --primary: #e63946; --dark: #0b132b; --light: #f1faee; --accent: #3a506b; }
-        body { font-family: sans-serif; background-color: var(--dark); color: var(--light); margin: 0; padding: 2px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; align-items: center; }
         
-        header { display: flex; align-items: center; justify-content: space-between; width: 98vw; padding: 5px 10px; height: 45px; }
-        h1 { font-size: 1.5rem; margin: 0; color: var(--primary); text-transform: uppercase; font-weight: bold; }
-        
-        .inst-row { font-size: 0.95rem; flex-grow: 1; text-align: center; margin: 0 15px; white-space: nowrap; font-weight: 500; }
-        
-        .btn-padlet { background: #e63946; color: white; text-decoration: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; font-size: 0.85rem; display: flex; align-items: center; gap: 8px; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2); }
-        .btn-padlet:hover { background: #ff4d4d; transform: scale(1.05); }
-        
-        .game-area { flex: 1; display: flex; flex-direction: column; justify-content: center; width: 98vw; gap: 10px; padding: 5px 0; }
-        .card-row { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; }
+        * { box-sizing: border-box; }
 
-        .card-id { aspect-ratio: 2/3; background: #000; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: zoom-in; transition: 0.2s; }
-        .card-id img { width: 100%; height: 100%; object-fit: contain; }
+        body { 
+            font-family: sans-serif; 
+            background-color: var(--dark); 
+            color: var(--light); 
+            margin: 0; 
+            padding: 0; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            overflow: hidden; 
+            align-items: center; 
+        }
+        
+        header { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            width: 100%; 
+            height: 35px; 
+            padding: 0 15px;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        h1 { font-size: 0.9rem; margin: 0; color: var(--primary); text-transform: uppercase; }
+        .inst-row { font-size: 0.75rem; opacity: 0.8; }
+        .btn-padlet { background: var(--primary); color: white; text-decoration: none; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; }
+
+        .game-area { 
+            flex: 1; 
+            width: 98vw; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; /* Centra tutto verticalmente */
+            gap: 10px;
+            padding: 5px 0;
+        }
+
+        /* Griglia a 8 colonne: con 16 carte andrà automaticamente su 2 righe */
+        .card-row { 
+            display: grid; 
+            grid-template-columns: repeat(8, 1fr); 
+            gap: 5px; 
+            width: 100%;
+        }
+
+        /* Rettangoli A ancora più compatti */
+        .card-id { 
+            aspect-ratio: 3/1.4; 
+            background: #111; 
+            border: 1px solid rgba(255,255,255,0.3); 
+            border-radius: 4px; 
+            cursor: zoom-in; 
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .card-id img { width: 100%; height: 100%; object-fit: cover; }
         .card-id:hover { border-color: var(--primary); transform: scale(1.05); z-index: 10; }
 
-        .avatar-slot { aspect-ratio: 2/3; border: 1px dashed var(--accent); border-radius: 4px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; position: relative; }
-        .avatar-slot img { width: 85%; height: auto; max-height: 85%; object-fit: contain; }
+        /* Avatar B leggermente più piccoli per stare su due righe */
+        .avatar-slot { 
+            aspect-ratio: 1/1; 
+            border: 1px dashed var(--accent); 
+            border-radius: 6px; 
+            background: rgba(255,255,255,0.03); 
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .avatar-slot img { width: 85%; height: 85%; object-fit: contain; }
         .avatar-slot.matched { border: 1px solid #4caf50; background: rgba(76, 175, 80, 0.1); }
         .avatar-slot.matched img { opacity: 0.1; }
-        .avatar-slot.matched::after { content: "✅"; position: absolute; font-size: 1.5rem; }
+        .avatar-slot.matched::after { content: "✅"; position: absolute; font-size: 1.2rem; }
 
-        #zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center; }
+        .label-section { 
+            font-size: 0.65rem; 
+            text-transform: uppercase; 
+            color: var(--accent); 
+            text-align: center;
+            margin-bottom: 2px;
+        }
+
+        /* Zoom & Win Modals */
+        #zoom-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; }
         #zoom-modal img { max-width: 90%; max-height: 90%; border: 2px solid white; }
 
-        #win-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: var(--dark); padding: 25px; border-radius: 15px; text-align: center; z-index: 3000; width: 260px; border: 5px solid var(--primary); }
-        #code-num { display: none; font-size: 70px; color: var(--primary); font-weight: bold; margin: 15px 0; }
+        #win-modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; color: #000; padding: 20px; border-radius: 15px; text-align: center; z-index: 3000; border: 4px solid var(--primary); width: 250px; }
+        #code-num { display: none; font-size: 50px; color: var(--primary); font-weight: bold; }
         
-        button.rev { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; width: 100%; font-size: 1rem; }
         .hidden { visibility: hidden; opacity: 0; pointer-events: none; }
     </style>
 </head>
@@ -43,46 +109,54 @@
 
 <header>
     <h1>HERO MATCHING</h1>
-    <div class="inst-row">
-        🖱️ Trascina le ID Card sugli Avatar | 🔍 Click per Zoom
-    </div>
-    <a href="https://padlet.com/professoressalauraa/superheroes-academy-5iu1b24rpu9h1bco" target="_blank" class="btn-padlet">
-        💡 SUGGERIMENTI PADLET
-    </a>
+    <div class="inst-row">Trascina Badge (A) su Avatar (B) | Zoom con Click</div>
+    <a href="https://padlet.com/professoressalauraa/superheroes-academy-5iu1b24rpu9h1bco" target="_blank" class="btn-padlet">PADLET</a>
 </header>
 
 <div class="game-area">
-    <div class="card-row" id="id-row"></div>
-    <div class="card-row" id="avatar-row"></div>
+    <div>
+        <div class="label-section">Badge Identificativi (A)</div>
+        <div class="card-row" id="id-row"></div>
+    </div>
+
+    <div style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 5px;">
+        <div class="label-section">Obiettivi Avatar (B)</div>
+        <div class="card-row" id="avatar-row"></div>
+    </div>
 </div>
 
 <div id="zoom-modal" onclick="this.style.display='none'"><img id="zoom-img"></div>
 
 <div id="win-modal">
-    <h3>MISSIONE COMPIUTA! 🎖️</h3>
-    <button class="rev" id="reveal-btn" onclick="showCode()">RIVELA CODICE</button>
+    <h3 style="margin:0">OTTIMO LAVORO!</h3>
+    <p style="font-size:0.9rem">Tutti gli eroi sono stati identificati.</p>
+    <button style="background:var(--primary);color:white;border:none;padding:10px;width:100%;cursor:pointer;font-weight:bold;border-radius:4px;" id="reveal-btn" onclick="showCode()">RIVELA CODICE</button>
     <div id="code-num">0</div>
 </div>
 
 <script>
-    const total = 9;
+    const total = 16;
     let matches = 0;
-    const idRow = document.getElementById('id-row');
-    const avatarRow = document.getElementById('avatar-row');
     const nums = Array.from({length: total}, (_, i) => i + 1);
     const shuffled = [...nums].sort(() => Math.random() - 0.5);
 
-    // Caricamento ID Cards
+    const idRow = document.getElementById('id-row');
+    const avatarRow = document.getElementById('avatar-row');
+
+    // Creazione ID Cards A (8 per riga x 2 righe = 16)
     shuffled.forEach(n => {
         const d = document.createElement('div');
         d.className = 'card-id'; d.draggable = true; d.id = `c${n}`; d.dataset.m = n;
-        d.onclick = () => { document.getElementById('zoom-img').src = `${n}A.png`; document.getElementById('zoom-modal').style.display = 'flex'; };
+        d.onclick = () => { 
+            document.getElementById('zoom-img').src = `${n}A.png`; 
+            document.getElementById('zoom-modal').style.display = 'flex'; 
+        };
         d.innerHTML = `<img src="${n}A.png">`;
         d.ondragstart = (e) => e.dataTransfer.setData('t', d.id);
         idRow.appendChild(d);
     });
 
-    // Caricamento Avatar Slot
+    // Creazione Slot Avatar B (8 per riga x 2 righe = 16)
     nums.forEach(n => {
         const s = document.createElement('div');
         s.className = 'avatar-slot'; s.dataset.i = n;
@@ -96,18 +170,22 @@
                 dragElem.classList.add('hidden');
                 matches++;
                 if (matches === total) {
-                    const end = Date.now() + 5000;
-                    (function f() {
-                        confetti({particleCount:7, angle:60, spread:60, origin:{x:0}, colors:['#e63946','#ffffff']});
-                        confetti({particleCount:7, angle:120, spread:60, origin:{x:1}, colors:['#e63946','#ffffff']});
-                        if(Date.now() < end) requestAnimationFrame(f);
-                    }());
-                    setTimeout(() => { document.getElementById('win-modal').style.display = 'block'; }, 1000);
+                    lanciaConfetti();
+                    setTimeout(() => { document.getElementById('win-modal').style.display = 'block'; }, 800);
                 }
             }
         };
         avatarRow.appendChild(s);
     });
+
+    function lanciaConfetti() {
+        const end = Date.now() + 3000;
+        (function f() {
+            confetti({particleCount:4, angle:60, spread:55, origin:{x:0}});
+            confetti({particleCount:4, angle:120, spread:55, origin:{x:1}});
+            if(Date.now() < end) requestAnimationFrame(f);
+        }());
+    }
 
     function showCode() {
         document.getElementById('reveal-btn').style.display = 'none';
